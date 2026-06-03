@@ -77,10 +77,13 @@ const ostacolo = {
 window.addEventListener("keydown", (e) => {
     const key = e.key.toLowerCase();
 
-    // Salto (Barra Spaziatrice) - Funziona anche se il tasto è " "
-    if ((e.key === " " || e.code === "Space") && !cavallo.isJumping) {
-        cavallo.speedY = cavallo.jumpForce;
-        cavallo.isJumping = true;
+    // Salto (Barra Spaziatrice)
+    if ((e.key === " " || e.code === "Space")) {
+        e.preventDefault(); // Impedisce alla pagina di scorrere
+        if (!cavallo.isJumping) {
+            cavallo.speedY = cavallo.jumpForce;
+            cavallo.isJumping = true;
+        }
     }
     
     // Gira a sinistra
@@ -131,7 +134,6 @@ function update() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // 1. DISEGNA SFONDO E TERRENO
-    // Cielo (già gestito dal CSS, ma ridisegnato per pulizia)
     ctx.fillStyle = "#87CEEB";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     // Terreno (Erba)
@@ -139,7 +141,6 @@ function update() {
     ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
 
     // 2. AGGIORNA E DISEGNA IL CAVALLO
-    // Applicazione gravità
     cavallo.speedY += cavallo.gravity;
     cavallo.y += cavallo.speedY;
     cavallo.x += cavallo.speedX;
@@ -155,20 +156,19 @@ function update() {
     if (cavallo.x < 0) cavallo.x = 0;
     if (cavallo.x > canvas.width - cavallo.width) cavallo.x = canvas.width - cavallo.width;
 
-    // Disegna Cavallo (Rappresentazione grafica semplificata)
+    // Disegna Cavallo
     ctx.fillStyle = cavallo.color;
     ctx.fillRect(cavallo.x, cavallo.y, cavallo.width, cavallo.height); // Corpo
     ctx.fillRect(cavallo.x + cavallo.width - 15, cavallo.y - 15, 15, 20); // Testa/Collo
 
     // 3. AGGIORNA E DISEGNA L'OSTACOLO
-    // L'ostacolo si muove verso sinistra in base alla velocità di galoppo
     ostacolo.x -= cavallo.currentSpeed;
 
-    // Se l'ostacolo esce dallo schermo, riappare a destra e aumenta il punteggio
+    // Se l'ostacolo esce dallo schermo
     if (ostacolo.x < -ostacolo.width) {
-        ostacolo.x = canvas.width + Math.random() * 200; // Distanza casuale
+        ostacolo.x = canvas.width + Math.random() * 200;
         if (cavallo.currentSpeed > 0) {
-            score++; // Guadagni punti solo se ti stai muovendo
+            score++;
         }
     }
 
@@ -183,7 +183,6 @@ function update() {
         cavallo.y < ostacolo.y + ostacolo.height &&
         cavallo.y + cavallo.height > ostacolo.y
     ) {
-        // Collisione avvenuta: Reset del gioco
         resetGame();
     }
 
