@@ -1,1 +1,205 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Il Cavallo al Galoppo</title>
+    <style>
+        body {
+            margin: 0;
+            background: #222;
+            color: white;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            border: 4px solid #fff;
+            background: #87CEEB; /* Cielo azzurro */
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+        .controlli {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 14px;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
 
+    <h1>Il Cavallo al Galoppo</h1>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    
+    <div class="controlli">
+        <strong>Controlli:</strong> Spazio = Salta | W = Galoppa (Accelera) | S = Fermati | A = Muovi a Sinistra | D = Muovi a Destra
+    </div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Stato del gioco
+let score = 0;
+let gameOver = false;
+const groundY = 320; // Altezza del terreno
+
+// Oggetto Cavallo
+const cavallo = {
+    x: 150,
+    y: groundY - 50,
+    width: 60,
+    height: 50,
+    speedX: 0,
+    speedY: 0,
+    gravity: 0.6,
+    jumpForce: -12,
+    isJumping: false,
+    baseSpeed: 3,
+    currentSpeed: 3, // Velocità dell'ostacolo determinata dal galoppo
+    color: "#8B4513" // Marrone cavallo
+};
+
+// Oggetto Ostacolo
+const ostacolo = {
+    x: canvas.width,
+    y: groundY - 40,
+    width: 30,
+    height: 40,
+    color: "#FF4500" // Rosso/Arancione ostacolo
+};
+
+// Gestione dei tasti premuti
+window.addEventListener("keydown", (e) => {
+    const key = e.key.toLowerCase();
+
+    // Salto (Barra Spaziatrice) - Funziona anche se il tasto è " "
+    if ((e.key === " " || e.code === "Space") && !cavallo.isJumping) {
+        cavallo.speedY = cavallo.jumpForce;
+        cavallo.isJumping = true;
+    }
+    
+    // Gira a sinistra
+    if (key === "a") {
+        cavallo.speedX = -4;
+    }
+    
+    // Gira a destra
+    if (key === "d") {
+        cavallo.speedX = 4;
+    }
+    
+    // Si ferma
+    if (key === "s") {
+        cavallo.speedX = 0;
+        cavallo.currentSpeed = 0; // Ferma lo scorrimento del mondo
+    }
+    
+    // Galoppa (Aumenta velocità scorrimento)
+    if (key === "w") {
+        cavallo.currentSpeed = 7; 
+    }
+});
+
+window.addEventListener("keyup", (e) => {
+    const key = e.key.toLowerCase();
+    // Ferma il movimento laterale quando rilasci A o D
+    if (key === "a" || key === "d") {
+        cavallo.speedX = 0;
+    }
+});
+
+// Funzione di reset
+function resetGame() {
+    score = 0;
+    cavallo.x = 150;
+    cavallo.y = groundY - 50;
+    cavallo.speedX = 0;
+    cavallo.speedY = 0;
+    cavallo.currentSpeed = cavallo.baseSpeed;
+    cavallo.isJumping = false;
+    ostacolo.x = canvas.width;
+    gameOver = false;
+}
+
+// Loop principale del gioco
+function update() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 1. DISEGNA SFONDO E TERRENO
+    // Cielo (già gestito dal CSS, ma ridisegnato per pulizia)
+    ctx.fillStyle = "#87CEEB";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Terreno (Erba)
+    ctx.fillStyle = "#228B22";
+    ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+    // 2. AGGIORNA E DISEGNA IL CAVALLO
+    // Applicazione gravità
+    cavallo.speedY += cavallo.gravity;
+    cavallo.y += cavallo.speedY;
+    cavallo.x += cavallo.speedX;
+
+    // Blocco sul terreno
+    if (cavallo.y >= groundY - cavallo.height) {
+        cavallo.y = groundY - cavallo.height;
+        cavallo.speedY = 0;
+        cavallo.isJumping = false;
+    }
+
+    // Limiti laterali dello schermo per il cavallo
+    if (cavallo.x < 0) cavallo.x = 0;
+    if (cavallo.x > canvas.width - cavallo.width) cavallo.x = canvas.width - cavallo.width;
+
+    // Disegna Cavallo (Rappresentazione grafica semplificata)
+    ctx.fillStyle = cavallo.color;
+    ctx.fillRect(cavallo.x, cavallo.y, cavallo.width, cavallo.height); // Corpo
+    ctx.fillRect(cavallo.x + cavallo.width - 15, cavallo.y - 15, 15, 20); // Testa/Collo
+
+    // 3. AGGIORNA E DISEGNA L'OSTACOLO
+    // L'ostacolo si muove verso sinistra in base alla velocità di galoppo
+    ostacolo.x -= cavallo.currentSpeed;
+
+    // Se l'ostacolo esce dallo schermo, riappare a destra e aumenta il punteggio
+    if (ostacolo.x < -ostacolo.width) {
+        ostacolo.x = canvas.width + Math.random() * 200; // Distanza casuale
+        if (cavallo.currentSpeed > 0) {
+            score++; // Guadagni punti solo se ti stai muovendo
+        }
+    }
+
+    // Disegna Ostacolo
+    ctx.fillStyle = ostacolo.color;
+    ctx.fillRect(ostacolo.x, ostacolo.y, ostacolo.width, ostacolo.height);
+
+    // 4. GESTIONE COLLISIONI
+    if (
+        cavallo.x < ostacolo.x + ostacolo.width &&
+        cavallo.x + cavallo.width > ostacolo.x &&
+        cavallo.y < ostacolo.y + ostacolo.height &&
+        cavallo.y + cavallo.height > ostacolo.y
+    ) {
+        // Collisione avvenuta: Reset del gioco
+        resetGame();
+    }
+
+    // 5. TESTO DEL PUNTEGGIO
+    ctx.fillStyle = "#FFF";
+    ctx.font = "20px Arial";
+    ctx.fillText("Punti: " + score, 20, 40);
+    ctx.font = "16px Arial";
+    ctx.fillText("Velocità Galoppo: " + (cavallo.currentSpeed * 10) + " km/h", 20, 70);
+
+    requestAnimationFrame(update);
+}
+
+// Avvia il gioco
+update();
+</script>
+
+</body>
+</html>
